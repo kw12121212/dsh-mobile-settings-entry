@@ -93,6 +93,34 @@ window.__ModuleLoader__.load({
       return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
     }
 
+    /** Legacy clipboard fallback for contexts where the async API is refused. */
+    function legacyCopy(text) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.top = '-1000px';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      var copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (error) {
+        copied = false;
+      }
+      document.body.removeChild(area);
+      return copied ? Promise.resolve() : Promise.reject(new Error('copy_failed'));
+    }
+
+    /** Write text to the clipboard, preferring the async API. */
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(function () { return legacyCopy(text); });
+      }
+      return legacyCopy(text);
+    }
+
     function formatDeadline(expiresAt) {
       if (typeof expiresAt !== 'number') return '';
       var minutes = Math.max(0, Math.round((expiresAt - Date.now()) / 60000));
@@ -129,10 +157,7 @@ window.__ModuleLoader__.load({
       else hint = '生成配对链接给手机，或打开原控制面板管理设备。';
 
       var copyLink = function () {
-        var write = navigator.clipboard && navigator.clipboard.writeText
-          ? navigator.clipboard.writeText(current.pairUrl)
-          : Promise.reject(new Error('clipboard_unavailable'));
-        write.then(function () {
+        copyText(current.pairUrl).then(function () {
           setState({ phase: 'ready', pairUrl: current.pairUrl, expiresAt: current.expiresAt, copied: true });
         }).catch(function () {
           setState({ phase: 'ready', pairUrl: current.pairUrl, expiresAt: current.expiresAt, copied: false, copyFailed: true });
