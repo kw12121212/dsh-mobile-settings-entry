@@ -76,12 +76,21 @@ window.__ModuleLoader__.load({
         headers: { 'content-type': 'application/json' },
         body: '{}'
       });
+      if (response.status === 403 && !isLoopbackPage()) {
+        throw new Error('loopback_only');
+      }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       var data = await response.json();
       if (typeof data.pairUrl !== 'string' || data.pairUrl.length === 0) {
         throw new Error('no_pair_url');
       }
       return data;
+    }
+
+    /** True when this page is served from loopback, which the admin API requires. */
+    function isLoopbackPage() {
+      var host = window.location.hostname;
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
     }
 
     function formatDeadline(expiresAt) {
@@ -113,6 +122,7 @@ window.__ModuleLoader__.load({
       var hint;
       if (current.phase === 'loading') hint = '正在生成配对链接…';
       else if (current.phase === 'ready') hint = '手机浏览器打开下面的链接即可配对' + formatDeadline(current.expiresAt);
+      else if (current.phase === 'error' && current.message === 'loopback_only') hint = '管理接口只允许本机访问：请在电脑上用 http://127.0.0.1:13080 打开本页再生成。';
       else if (current.phase === 'error') hint = '生成失败（' + current.message + '）：确认远程通道处于「后端已监听」。';
       else if (current.phase === 'panel') hint = '已打开面板；配对二维码在「远程访问」标签里。';
       else if (current.phase === 'panel-missing') hint = '这个布局没有渲染 dsh-mobile 的控制按钮，请用「生成配对链接」。';
