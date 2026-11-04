@@ -128,20 +128,57 @@ window.__ModuleLoader__.load({
       else if (current.phase === 'panel-missing') hint = '这个布局没有渲染 dsh-mobile 的控制按钮，请用「生成配对链接」。';
       else hint = '生成配对链接给手机，或打开原控制面板管理设备。';
 
+      var copyLink = function () {
+        var write = navigator.clipboard && navigator.clipboard.writeText
+          ? navigator.clipboard.writeText(current.pairUrl)
+          : Promise.reject(new Error('clipboard_unavailable'));
+        write.then(function () {
+          setState({ phase: 'ready', pairUrl: current.pairUrl, expiresAt: current.expiresAt, copied: true });
+        }).catch(function () {
+          setState({ phase: 'ready', pairUrl: current.pairUrl, expiresAt: current.expiresAt, copied: false, copyFailed: true });
+        });
+      };
+
       var link = current.phase === 'ready'
         ? react.createElement('div', {
-            key: 'link',
+            key: 'linkrow',
             style: {
-              marginTop: '8px',
-              padding: '8px 10px',
-              borderRadius: '6px',
-              background: 'rgba(127, 127, 127, 0.12)',
-              fontSize: '12px',
-              wordBreak: 'break-all',
-              userSelect: 'all',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
+              display: 'flex',
+              alignItems: 'stretch',
+              gap: '8px',
+              marginTop: '8px'
             }
-          }, current.pairUrl)
+          }, [
+            react.createElement('div', {
+              key: 'link',
+              style: {
+                flex: '1 1 auto',
+                minWidth: 0,
+                padding: '8px 10px',
+                borderRadius: '6px',
+                background: 'rgba(127, 127, 127, 0.12)',
+                fontSize: '12px',
+                wordBreak: 'break-all',
+                userSelect: 'all',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
+              }
+            }, current.pairUrl),
+            react.createElement('button', {
+              key: 'copy',
+              type: 'button',
+              onClick: copyLink,
+              style: {
+                flex: '0 0 auto',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: '1px solid rgba(127, 127, 127, 0.4)',
+                background: 'transparent',
+                color: 'inherit',
+                font: 'inherit',
+                cursor: 'pointer'
+              }
+            }, current.copied ? '已复制' : current.copyFailed ? '复制失败' : '复制')
+          ])
         : null;
 
       var buttonStyle = {
