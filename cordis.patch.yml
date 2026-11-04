@@ -1,0 +1,5 @@
+# dsh bundle layer: mount the package root (index.js). The browser half loads
+# from the ./client export declared in package.json's dsh.client manifest.
+- insert:
+    - id: mobile-settings-entry
+      name: dsh-mobile-settings-entry
